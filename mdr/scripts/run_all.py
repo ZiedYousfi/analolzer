@@ -56,13 +56,22 @@ def parse_args() -> argparse.Namespace:
         default=2,
         help="Indentation level used when dumping the inferred schema",
     )
+    parser.add_argument(
+        "--skip-find",
+        action="store_true",
+        help="Skip the metadata offset finder and only run the extractor",
+    )
+    parser.add_argument(
+        "--continue-on-find-failure",
+        action="store_true",
+        help="If the find step fails, continue with extractor instead of exiting",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     rofl_path = args.rofl_file
-
     find_args = [str(rofl_path), "--version", args.version]
     if args.log_file:
         find_args.extend(["--log-file", str(args.log_file)])
@@ -70,14 +79,21 @@ def main() -> None:
         for offset in args.known_offset:
             find_args.extend(["--known-offset", offset])
 
-    _run_script(FIND_SCRIPT, find_args)
-
     extract_args = [str(rofl_path), "--indent", str(args.indent)]
     if args.schema_output:
         extract_args.extend(["--output", str(args.schema_output)])
     if args.cast_numbers:
         extract_args.append("--cast-numbers")
 
+    # Run the finder first (unless skipped), then run the extractor
+    if not args.skip_find:
+        try:
+            _run_script(FIND_SCRIPT, find_args)
+        except SystemExit:
+            if args.continue_on_find_failure:
+                print("Find step failed but continuing because --continue-on-find-failure was set")
+            else:
+                raise
     _run_script(EXTRACT_SCRIPT, extract_args)
 
 

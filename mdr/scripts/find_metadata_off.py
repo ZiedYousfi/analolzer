@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Discover the metadata offset for a ROFL replay file."""
 from __future__ import annotations
 

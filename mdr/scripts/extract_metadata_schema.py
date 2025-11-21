@@ -190,6 +190,12 @@ def main() -> None:
 
     output_content = json.dumps(schema, indent=args.indent)
     if args.output:
+        # Ensure the parent directory exists so writing the output file doesn't fail
+        try:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            # If mkdir fails (e.g., permission issues), let the write raise a more informative error
+            pass
         args.output.write_text(output_content, encoding="utf-8")
     else:
         print(output_content)

@@ -24,4 +24,4 @@ This means that MDR 25.23.0 is compatible with League of Legends 15.23 and ROFL 
 
 This is totally made by reverse engineering. I know that there is a lot of this kind of software around but it always feels like they are not up to date and doesn't really give usable information by other software. So I decided to make my own implementation in Rust. I used a lot of different tools to reverse engineer the .rofl files, including a hex editor, a disassembler, and a debugger. I also looked at existing open source projects that deal with .rofl files to get an idea of how they work. But none of them were really up to date/easy to use.
 
-This isn't being built for cheating reasons as I assume that once a match is played, there is nothing you really can do to cheat with it. This is more for data analysis, match history tracking, and other similar use cases.
+This isn't being built for cheating reasons as I assume that once a match is played, there is nothing you really can do to cheat with it. This is more for data analysis, match history tracking, and other similar use cases that are not provided by the developer API of Riot.

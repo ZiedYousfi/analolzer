@@ -1,10 +1,8 @@
 use binrw::BinRead;
 use serde::{Deserialize, Serialize};
 
-#[derive(BinRead, Debug)]
-#[br(magic = b"RIOT")]
+#[derive(Debug)]
 pub struct BinHeader {
-    #[br(pad_before = 2)]
     pub signature: [u8; 256],
     pub header_size: u16,
     pub file_size: u32,

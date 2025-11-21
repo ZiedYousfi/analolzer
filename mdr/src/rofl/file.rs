@@ -24,9 +24,49 @@ impl RoflFile {
         let mut file = std::fs::File::open(path)?;
         let file_len = file.metadata()?.len();
 
-        // Read BIN Header
-        let bin_header: BinHeader = file.read_le()?;
-        debug!(?bin_header, "Read BIN Header");
+        // Read BIN Header with manual offsets (magic + signature can evolve)
+        let mut magic = [0u8; 4];
+        file.read_exact(&mut magic)?;
+        if &magic != b"RIOT" {
+            return Err(RoflError::InvalidHeader(format!(
+                "Invalid magic, expected RIOT, got {:?}",
+                &magic
+            )));
+        }
+
+        let mut _reserved = [0u8; 2];
+        file.read_exact(&mut _reserved)?;
+
+        let mut signature = [0u8; 256];
+        file.read_exact(&mut signature)?;
+
+        let header_size = file.read_le()?;
+        let file_size = file.read_le()?;
+        let metadata_offset = file.read_le()?;
+        let metadata_size = file.read_le()?;
+        let payload_header_offset = file.read_le()?;
+        let payload_header_size = file.read_le()?;
+        let payload_offset = file.read_le()?;
+
+        let bin_header = BinHeader {
+            signature,
+            header_size,
+            file_size,
+            metadata_offset,
+            metadata_size,
+            payload_header_offset,
+            payload_header_size,
+            payload_offset,
+        };
+        debug!(?bin_header, file_len, "Parsed BIN Header");
+
+        if bin_header.file_size as u64 != file_len {
+            debug!(
+                header_file_size = bin_header.file_size,
+                actual_file_size = file_len,
+                "header file size disagrees with actual file size"
+            );
+        }
 
         // Read Metadata
         file.seek(SeekFrom::Start(bin_header.metadata_offset as u64))?;

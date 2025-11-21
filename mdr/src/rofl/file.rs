@@ -22,6 +22,7 @@ impl RoflFile {
         let path = path.as_ref();
         debug!("Opening ROFL file");
         let mut file = std::fs::File::open(path)?;
+        let file_len = file.metadata()?.len();
 
         // Read BIN Header
         let bin_header: BinHeader = file.read_le()?;
@@ -29,6 +30,12 @@ impl RoflFile {
 
         // Read Metadata
         file.seek(SeekFrom::Start(bin_header.metadata_offset as u64))?;
+        if bin_header.metadata_offset as u64 + bin_header.metadata_size as u64 > file_len {
+            return Err(RoflError::InvalidHeader(format!(
+                "metadata range exceeds file size: offset {} size {} file_len {}",
+                bin_header.metadata_offset, bin_header.metadata_size, file_len
+            )));
+        }
         let mut metadata_bytes = vec![0u8; bin_header.metadata_size as usize];
         file.read_exact(&mut metadata_bytes)?;
         let metadata_str = String::from_utf8(metadata_bytes)?;
@@ -37,6 +44,14 @@ impl RoflFile {
 
         // Read Payload Header
         file.seek(SeekFrom::Start(bin_header.payload_header_offset as u64))?;
+        if bin_header.payload_header_offset as u64 + bin_header.payload_header_size as u64
+            > file_len
+        {
+            return Err(RoflError::InvalidHeader(format!(
+                "payload header range exceeds file size: offset {} size {} file_len {}",
+                bin_header.payload_header_offset, bin_header.payload_header_size, file_len
+            )));
+        }
         let payload_header: PayloadHeader = file.read_le()?;
         debug!(?payload_header, "Read Payload Header");
 
@@ -47,6 +62,17 @@ impl RoflFile {
 
         let total_segments = payload_header.chunk_count + payload_header.keyframe_count;
         let mut segment_headers = Vec::with_capacity(total_segments as usize);
+
+        // Ensure the segment headers block is within file bounds
+        let segments_headers_size = (total_segments as u64)
+            .checked_mul(17)
+            .ok_or_else(|| RoflError::InvalidHeader("segment headers size overflow".into()))?;
+        if payload_start + segments_headers_size > file_len {
+            return Err(RoflError::InvalidHeader(format!(
+                "segment headers exceed file size: payload_start {} headers_size {} file_len {}",
+                payload_start, segments_headers_size, file_len
+            )));
+        }
 
         for _ in 0..total_segments {
             let sh: SegmentHeader = file.read_le()?;
@@ -78,7 +104,16 @@ impl RoflFile {
         let data_start = payload_start + segments_headers_size + header.offset as u64;
 
         let mut file = std::fs::File::open(&self.file_path)?;
+        let file_len = file.metadata()?.len();
         file.seek(SeekFrom::Start(data_start))?;
+
+        // Validate the read won't go beyond the file
+        if data_start + header.length as u64 > file_len {
+            return Err(RoflError::InvalidHeader(format!(
+                "segment {} data exceeds file size: data_start {} length {} file_len {}",
+                header.segment_id, data_start, header.length, file_len
+            )));
+        }
 
         let mut encrypted_data = vec![0u8; header.length as usize];
         file.read_exact(&mut encrypted_data)?;

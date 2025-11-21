@@ -4,19 +4,27 @@ use anyhow::Result;
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use tracing::{info, error, warn};
+use tracing::{info, warn};
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() < 3 {
-        error!("Usage: {} <input_rofl> <output_json>", args[0]);
-        std::process::exit(1);
-    }
 
-    let input_path = &args[1];
-    let output_path = &args[2];
+    let input_path = if let Some(arg) = args.get(1) {
+        arg
+    } else {
+        warn!("No input file provided");
+        warn!("Using default path for testing purposes only");
+        "/Users/ziedyousfi/Documents/League of Legends/Replays/EUW1-7610660427.rofl"
+    };
+    let output_path = if let Some(arg) = args.get(2) {
+        arg
+    } else {
+        warn!("No output file provided");
+        warn!("Using default path for testing purposes only");
+        "rofl_output.json"
+    };
 
     info!(path = input_path, "Reading ROFL file");
     let rofl = rofl::RoflFile::open(input_path)?;

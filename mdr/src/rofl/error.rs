@@ -28,4 +28,6 @@ pub enum RoflError {
 
     #[error("Decryption error: {0}")]
     DecryptionError(String),
+    #[error("Invalid file header or offsets: {0}")]
+    InvalidHeader(String),
 }

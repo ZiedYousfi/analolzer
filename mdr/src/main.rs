@@ -4,23 +4,26 @@ use anyhow::Result;
 use std::env;
 use std::fs::File;
 use std::io::Write;
+use tracing::{info, error, warn};
 
 fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
-        eprintln!("Usage: {} <input_rofl> <output_json>", args[0]);
+        error!("Usage: {} <input_rofl> <output_json>", args[0]);
         std::process::exit(1);
     }
 
     let input_path = &args[1];
     let output_path = &args[2];
 
-    println!("Reading ROFL file: {}", input_path);
+    info!(path = input_path, "Reading ROFL file");
     let rofl = rofl::RoflFile::open(input_path)?;
 
-    println!("Metadata loaded.");
-    println!("Match ID: {}", rofl.payload_header.match_id);
-    println!("Segments: {}", rofl.segment_headers.len());
+    info!("Metadata loaded");
+    info!(match_id = rofl.payload_header.match_id, "Match ID");
+    info!(segments = rofl.segment_headers.len(), "Segments count");
 
     let mut segments_info = Vec::new();
 
@@ -36,9 +39,8 @@ fn main() -> Result<()> {
         #[allow(clippy::manual_ok_err)]
         let sections = match rofl.parse_segment(i) {
             Ok(s) => Some(s),
-            Err(_e) => {
-                // Don't spam stderr, just log it in the json or ignore
-                // eprintln!("\nError parsing segment {}: {}", i, e);
+            Err(e) => {
+                warn!(segment_index = i, error = ?e, "Error parsing segment");
                 None
             }
         };
@@ -67,7 +69,7 @@ fn main() -> Result<()> {
     let mut output_file = File::create(output_path)?;
     serde_json::to_writer_pretty(&mut output_file, &output_data)?;
 
-    println!("Written info to {}", output_path);
+    info!(path = output_path, "Written info to file");
 
     Ok(())
 }

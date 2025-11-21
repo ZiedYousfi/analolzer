@@ -19,10 +19,9 @@ impl RoflFile {
             metadata_offset: 0,
             metadata: Metadata {
                 game_length: 0,
-                game_version: String::new(),
                 last_game_chunk_id: 0,
                 last_key_frame_id: 0,
-                stats_json: String::new(),
+                stats_json: Vec::new(),
             },
             file,
         };

@@ -12,7 +12,6 @@ pub struct BinHeader {
     pub payload_header_size: u32,
     pub payload_offset: u32,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Metadata {
     #[serde(rename = "gameLength")]

@@ -34,8 +34,9 @@ impl RoflFile {
             )));
         }
 
-        let mut _reserved = [0u8; 2];
-        file.read_exact(&mut _reserved)?;
+        let mut reserved = [0u8; 2];
+        file.read_exact(&mut reserved)?;
+        debug!(?reserved, "Reserved bytes after RIOT");
 
         let mut signature = [0u8; 256];
         file.read_exact(&mut signature)?;
@@ -58,7 +59,17 @@ impl RoflFile {
             payload_header_size,
             payload_offset,
         };
-        debug!(?bin_header, file_len, "Parsed BIN Header");
+        debug!(
+            header_size = bin_header.header_size,
+            file_size = bin_header.file_size,
+            metadata_offset = bin_header.metadata_offset,
+            metadata_size = bin_header.metadata_size,
+            payload_header_offset = bin_header.payload_header_offset,
+            payload_header_size = bin_header.payload_header_size,
+            payload_offset = bin_header.payload_offset,
+            file_len,
+            "Parsed BIN Header (manual)"
+        );
 
         if bin_header.file_size as u64 != file_len {
             debug!(

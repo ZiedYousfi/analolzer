@@ -1,6 +1,6 @@
 [package]
 name = "mdr-rs"
-version = "0.1.0"
+version = "25.23.0"
 edition = "2024"
 description = "A Rust crate to interact with rofl (replay of league of legends) files."
 authors = ["ZiedYousfi <zied.essaber@gmail.com>"]

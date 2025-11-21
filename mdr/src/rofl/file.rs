@@ -43,7 +43,10 @@ impl RoflFile {
 
         if let Some(pos) = buf.windows(needle.len()).position(|w| w == needle) {
             self.metadata_offset = pos as u64;
-            tracing::info!(metadata_offset = self.metadata_offset, "Found metadata offset");
+            tracing::info!(
+                metadata_offset = self.metadata_offset,
+                "Found metadata offset"
+            );
             Ok(())
         } else {
             Err(RoflError::InvalidHeader(
@@ -63,7 +66,7 @@ impl RoflFile {
 
         let needle = br#"]"}&"#;
         let end = if let Some(pos) = slice.windows(needle.len()).position(|w| w == needle) {
-            start + pos + 2
+            start + pos + needle.len() - 1
         } else {
             buf.len()
         };
@@ -78,5 +81,4 @@ impl RoflFile {
         self.metadata = metadata;
         Ok(())
     }
-
 }

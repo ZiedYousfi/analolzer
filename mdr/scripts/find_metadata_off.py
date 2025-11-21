@@ -1,56 +1,58 @@
-from datetime import datetime
-import json
-from pathlib import Path
-import sys
+"""Discover the metadata offset for a ROFL replay file."""
+from __future__ import annotations
 
-class file:
-    def __init__(self, path, known_meta_offsets, version):
+import argparse
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Iterable
+
+SCRIPT_VERSION = "1.0.0"
+DEFAULT_KNOWN_OFFSETS = (0x10AC67B, 0x10AC67B4)
+DEFAULT_LOG_FILE = Path(__file__).resolve().parent / "metadata_processing.log"
+
+
+def _parse_offset(value: str) -> int:
+    return int(value, 0)
+
+
+class MetadataOffsetFinder:
+    def __init__(self, path: Path, known_meta_offsets: Iterable[int]) -> None:
         self.path = path
-        self.known_meta_offsets = known_meta_offsets
-        self.version = version
+        self.known_meta_offsets = tuple(known_meta_offsets)
 
     def find_metadata_offset(self) -> int:
-        """
-        Parcourt le fichier binaire et trouve tous les endroits où un u32 little-endian
-        est égal à known_value. Retourne le premier offset trouvé, ou lève une erreur.
-
-        :param file_path: Path vers le fichier .rofl
-        :param known_value: valeur entière connue (ex: offset réel du JSON)
-        :return: offset (en bytes depuis le début du fichier)
-        """
-
-        with open(self.path, "rb") as f:
-            data = f.read()
+        data = self.path.read_bytes()
+        data_length = len(data)
 
         for known_value in self.known_meta_offsets:
-            print(f"Searching for metadata offset {known_value:#010x} in existing file {self.path}")
+            print(
+                f"Searching for metadata offset {known_value:#010x} in {self.path}"
+            )
             cursor = 0
-            data_length = len(data)
-
-            while cursor < data_length - 4:
-                value = int.from_bytes(data[cursor:cursor + 4], byteorder='little')
+            while cursor < data_length - 3:
+                value = int.from_bytes(data[cursor : cursor + 4], byteorder="little")
                 if value == known_value:
-                    print(f"Found metadata offset {known_value:#010x} at file offset {cursor:#06x}")
+                    print(
+                        f"Found metadata offset {known_value:#010x} at file offset {cursor:#06x}"
+                    )
                     return cursor
                 cursor += 1
 
         raise ValueError("Metadata offset not found")
 
 
-SCRIPT_VERSION = "1.0.0"
-LOG_FILE_PATH = Path(__file__).resolve().parent / "metadata_processing.log"
-
-
 class ProcessingHistory:
-    def __init__(self, log_path: Path):
+    def __init__(self, log_path: Path) -> None:
         self.log_path = log_path
         self.entries = self._load_entries()
 
-    def _load_entries(self) -> list[dict]:
+    def _load_entries(self) -> list[dict[str, Any]]:
         if not self.log_path.exists():
             return []
 
-        entries: list[dict] = []
+        entries: list[dict[str, Any]] = []
         with self.log_path.open("r", encoding="utf-8") as log_file:
             for raw_line in log_file:
                 line = raw_line.strip()
@@ -62,7 +64,7 @@ class ProcessingHistory:
                     continue
         return entries
 
-    def find_entry(self, file_path: Path, file_version: str) -> dict | None:
+    def find_entry(self, file_path: Path, file_version: str) -> dict[str, Any] | None:
         normalized_path = str(file_path)
         for entry in self.entries:
             if (
@@ -90,25 +92,56 @@ class ProcessingHistory:
         self.entries.append(entry)
 
 
-if __name__ == "__main__":
-    file_instance = file(Path(
-        "mdr/test/replays/EUW1-7610660427.rofl"
-    ), [0x10AC67B, 0x10AC67B4], "15.23.726.9074")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Find the metadata offset for a ROFL replay file."
+    )
+    parser.add_argument("rofl_file", type=Path, help="Path to the .rofl replay file")
+    parser.add_argument(
+        "--version",
+        default="15.23.726.9074",
+        help="Replay version to associate with the discovery",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        default=DEFAULT_LOG_FILE,
+        help="Path to the processing history log",
+    )
+    parser.add_argument(
+        "--known-offset",
+        type=_parse_offset,
+        action="append",
+        help="Known metadata offsets encoded as integers (hex or decimal); defaults are used when omitted",
+    )
+    return parser.parse_args()
 
-    history = ProcessingHistory(LOG_FILE_PATH)
-    already_processed = history.find_entry(file_instance.path, file_instance.version)
 
-    if already_processed is not None:
-        offset = already_processed["metadata_offset"]
+def main() -> None:
+    args = parse_args()
+    known_offsets = args.known_offset or list(DEFAULT_KNOWN_OFFSETS)
+
+    finder = MetadataOffsetFinder(args.rofl_file, known_offsets)
+    history = ProcessingHistory(args.log_file)
+
+    processed_entry = history.find_entry(args.rofl_file, args.version)
+    if processed_entry is not None:
+        offset = processed_entry["metadata_offset"]
         print(
-            f"Skipping {file_instance.path} for {file_instance.version} (script v{SCRIPT_VERSION}); "
+            f"Skipping {args.rofl_file} for {args.version} (script v{SCRIPT_VERSION}); "
             f"metadata offset {offset:#06x} already recorded"
         )
         sys.exit(0)
 
     try:
-        RESULT = file_instance.find_metadata_offset()
-        history.record(file_instance.path, file_instance.version, RESULT)
-        print(f"Metadata offset found at {RESULT:#06x}")
-    except ValueError as e:
-        print(e)
+        result = finder.find_metadata_offset()
+    except ValueError as exc:
+        print(exc)
+        sys.exit(1)
+
+    history.record(args.rofl_file, args.version, result)
+    print(f"Metadata offset found at {result:#06x}")
+
+
+if __name__ == "__main__":
+    main()

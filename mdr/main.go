@@ -12,7 +12,7 @@ import (
 /// Make sure to replace the file path with an actual ROFL file path on your system
 
 func main() {
-	roflFile, err := rofl.OpenRoflFile("/test/replays/EUW1-7610660427.rofl")
+	roflFile, err := rofl.OpenRoflFile("./test/replays/EUW1-7610660427.rofl")
 	if err != nil {
 		log.Fatalf("Error opening ROFL file: %v", err)
 	}

@@ -10,11 +10,11 @@ import (
 )
 
 type RoflFile struct {
-	FileBuffer     []byte
-	Path           string
-	MetadataOffset uint64
-	Metadata       Metadata
-	MetadataString string
+	FileBuffer           []byte
+	Path                 string
+	MetadataOffset       uint64
+	Metadata             Metadata
+	MetadataString       string
 	BytesWithoutMetadata []byte
 }
 
@@ -70,11 +70,11 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 	bytesWithoutMetadata := buf[:metadataOffset]
 
 	r := &RoflFile{
-		FileBuffer:     buf,
-		Path:           path,
-		MetadataOffset: metadataOffset,
-		Metadata:       metadata,
-		MetadataString: string(b),
+		FileBuffer:           buf,
+		Path:                 path,
+		MetadataOffset:       metadataOffset,
+		Metadata:             metadata,
+		MetadataString:       string(b),
 		BytesWithoutMetadata: bytesWithoutMetadata,
 	}
 

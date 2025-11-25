@@ -35,6 +35,11 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 		return nil, err
 	}
 
+	// Check for "RIOT" magic bytes at the start of the file
+	if !bytes.HasPrefix(buf, []byte("RIOT")) {
+		return nil, fmt.Errorf("file is not a valid ROFL file")
+	}
+
 	needle := []byte(`{"gameLength"`)
 	metadataOffset := uint64(0)
 

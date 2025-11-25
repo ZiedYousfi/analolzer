@@ -57,7 +57,7 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 		return nil, fmt.Errorf("failed to locate metadata JSON: %w", err)
 	}
 
-	if metadata, err := UnmarshalMetadata(jsonBytes); err == nil {
+	if metadata, err := UnmarshalMetadata(jsonBytes); err != nil {
 
 		b, err := json.MarshalIndent(metadata, "", "  ")
 		if err != nil {
@@ -75,7 +75,7 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 		return r, nil
 	}
 
-	return nil, fmt.Errorf("error unmarshaling metadata")
+	return nil, fmt.Errorf("error unmarshaling metadata encountered: %w", err)
 }
 
 func extractJSON(data []byte) ([]byte, error) {

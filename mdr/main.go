@@ -18,5 +18,5 @@ func main() {
 
 	fmt.Printf("ROFL file opened successfully: %s\n", roflFile.Path)
 	fmt.Printf("Metadata offset: %d\n", roflFile.MetadataOffset)
-	fmt.Println(roflFile.MetadataString)
+	fmt.Println("Metadata JSON:", roflFile.MetadataString)
 }

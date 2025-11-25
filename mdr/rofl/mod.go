@@ -24,11 +24,7 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 	}
 
 	// Ensure file is closed on failure
-	defer func() {
-		if err != nil {
-			_ = file.Close()
-		}
-	}()
+	defer file.Close()
 
 	if _, err = file.Seek(0, io.SeekStart); err != nil {
 		return nil, err

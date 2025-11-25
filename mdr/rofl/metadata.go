@@ -4,7 +4,7 @@ package rofl
 //
 // REGENERATION WORKFLOW:
 // 1. Run: python3 scripts/extract_metadata_schema.py <rofl_file> -o analysis_tmp/replay-schema.json --cast-numbers
-// 2. Go to https://app.quicktype.io/ and generate Go code from the schema
+// 2. Go to https://app.quicktype.io/ and generate Go code from the schema OR use an LLM to update the code in which case do NOT forget to use the JSON schema.
 // 3. Replace the StatsJSON struct fields with the generated ones
 // 4. IMPORTANT: Keep the following custom types and methods:
 //    - FlexInt64 type and its UnmarshalJSON/MarshalJSON methods

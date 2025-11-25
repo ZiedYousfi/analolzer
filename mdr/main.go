@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/ZiedYousfi/analolzer/mdr/rofl"
 )
@@ -18,5 +19,20 @@ func main() {
 
 	fmt.Printf("ROFL file opened successfully: %s\n", roflFile.Path)
 	fmt.Printf("Metadata offset: %d\n", roflFile.MetadataOffset)
-	fmt.Println("Metadata JSON:", roflFile.MetadataString)
+
+	f, err := os.Create("metadata-extracted.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	defer f.Close()
+
+	l, err := f.WriteString(roflFile.MetadataString)
+	if err != nil {
+		fmt.Println(err)
+		f.Close()
+		return
+	}
+	fmt.Println(l, "bytes written successfully")
 }

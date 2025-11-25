@@ -40,11 +40,9 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 	if !bytes.HasPrefix(buf, []byte("RIOT")) {
 		return nil, fmt.Errorf("file is not a valid ROFL file")
 	}
-
-	needle := []byte(`{"gameLength"`)
 	metadataOffset := uint64(0)
 
-	if pos := bytes.Index(buf, needle); pos >= 0 {
+	if pos := bytes.Index(buf, []byte(`{"gameLength"`)); pos >= 0 {
 		metadataOffset = uint64(pos)
 		log.Printf("Metadata offset found at: %d", metadataOffset)
 	} else {

@@ -15,6 +15,7 @@ type RoflFile struct {
 	MetadataOffset uint64
 	Metadata       Metadata
 	MetadataString string
+	BytesWithoutMetadata []byte
 }
 
 func OpenRoflFile(path string) (*RoflFile, error) {
@@ -67,12 +68,16 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 		return nil, fmt.Errorf("error marshaling metadata: %w", err)
 	}
 
+	// Calculate bytes without metadata
+	bytesWithoutMetadata := buf[:metadataOffset]
+
 	r := &RoflFile{
 		FileBuffer:     buf,
 		Path:           path,
 		MetadataOffset: metadataOffset,
 		Metadata:       metadata,
 		MetadataString: string(b),
+		BytesWithoutMetadata: bytesWithoutMetadata,
 	}
 
 	return r, nil

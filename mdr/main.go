@@ -12,13 +12,14 @@ import (
 /// Make sure to replace the file path with an actual ROFL file path on your system
 
 func main() {
-	roflFile, err := rofl.OpenRoflFile("/Users/ziedyousfi/code/analolzer/mdr/test/replays/EUW1-7610660427.rofl")
+	roflFile, err := rofl.OpenRoflFile("/test/replays/EUW1-7610660427.rofl")
 	if err != nil {
 		log.Fatalf("Error opening ROFL file: %v", err)
 	}
 
 	fmt.Printf("ROFL file opened successfully: %s\n", roflFile.Path)
 	fmt.Printf("Metadata offset: %d\n", roflFile.MetadataOffset)
+	fmt.Printf("Bytes without metadata length: %d\n", len(roflFile.BytesWithoutMetadata))
 
 	f, err := os.Create("metadata-extracted.json")
 	if err != nil {

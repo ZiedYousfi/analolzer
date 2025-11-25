@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Generate a JSON Schema from the ROFL metadata stored inside a replay file."""
+"""Generate a JSON Schema from the ROFL metadata stored inside a replay file.
+
+IMPORTANT: The generated schema marks integer fields as accepting both integer
+and string types because ROFL files can encode numeric values as strings.
+When using quicktype.io to generate Go code from this schema, you'll need to
+manually add a FlexInt64 type that can unmarshal from both integers and strings.
+
+The statsJson field in ROFL files is a JSON-encoded string, not a direct array.
+The Go code needs a custom UnmarshalJSON method to handle this two-step parsing.
+"""
 from __future__ import annotations
 
 import argparse
@@ -10,6 +19,17 @@ from typing import Any
 
 METADATA_START = b'{"gameLength"'
 METADATA_END_SENTINEL = b']"}&'
+
+# Fields that are known to be strings (not numeric)
+STRING_FIELDS = {
+    "WIN",
+    "NAME",
+    "PUUID",
+    "SKIN",
+    "TEAM_POSITION",
+    "INDIVIDUAL_POSITION",
+    "RIOT_ID_GAME_NAME",
+}
 
 
 def extract_metadata_json_bytes(path: Path) -> bytes:
@@ -26,9 +46,9 @@ def extract_metadata_json_bytes(path: Path) -> bytes:
     return data[start:end]
 
 
-def infer_schema(value: Any) -> dict[str, Any]:
+def infer_schema(value: Any, field_name: str | None = None) -> dict[str, Any]:
     if isinstance(value, dict):
-        props = {name: infer_schema(val) for name, val in value.items()}
+        props = {name: infer_schema(val, field_name=name) for name, val in value.items()}
         return {
             "type": "object",
             "properties": props,
@@ -47,11 +67,32 @@ def infer_schema(value: Any) -> dict[str, Any]:
     if isinstance(value, bool):
         return {"type": "boolean"}
     if isinstance(value, int):
-        return {"type": "integer"}
+        # ROFL files can encode integers as strings, so we accept both types
+        # This ensures generated Go code uses a flexible type like FlexInt64
+        return {"type": ["integer", "string"]}
     if isinstance(value, float):
-        return {"type": "number"}
+        return {"type": ["number", "string"]}
     if value is None:
         return {"type": "null"}
+
+    # Check if this string field is actually a known string field
+    if field_name and field_name in STRING_FIELDS:
+        return {"type": "string"}
+
+    # For other string values, check if they look like numbers
+    # If so, mark them as potentially both integer and string
+    if isinstance(value, str):
+        # Check if it's a numeric string
+        try:
+            int(value)
+            return {"type": ["integer", "string"]}
+        except ValueError:
+            pass
+        try:
+            float(value)
+            return {"type": ["number", "string"]}
+        except ValueError:
+            pass
 
     return {"type": "string"}
 
@@ -182,11 +223,25 @@ def main() -> None:
 
     # 3) Inférer le schéma sur TOUT l'objet metadata enrichi
     schema = infer_schema(metadata)
-    schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": f"{args.rofl_file.name} full metadata",
-        **schema,
-    }
+
+    # Add metadata to the schema
+    schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+    schema["title"] = f"{args.rofl_file.name} full metadata"
+    schema["description"] = (
+        "Schema for ROFL replay file metadata. IMPORTANT: The statsJson field "
+        "is stored as a JSON-encoded string in the actual file and must be "
+        "parsed in two steps. Additionally, numeric fields may appear as strings "
+        "and should be handled with flexible parsing (e.g., FlexInt64 in Go)."
+    )
+
+    # Add description to statsJson to document it's string-encoded in the actual file
+    if "properties" in schema and "statsJson" in schema["properties"]:
+        schema["properties"]["statsJson"]["description"] = (
+            "NOTE: In the actual ROFL file, this field is a JSON-encoded string, "
+            "not a direct array. When parsing, you need to first unmarshal the "
+            "outer JSON, then parse the statsJson string as JSON again. "
+            "Also, numeric fields may be encoded as strings (e.g., '0' instead of 0)."
+        )
 
     output_content = json.dumps(schema, indent=args.indent)
     if args.output:

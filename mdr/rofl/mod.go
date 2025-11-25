@@ -57,25 +57,25 @@ func OpenRoflFile(path string) (*RoflFile, error) {
 		return nil, fmt.Errorf("failed to locate metadata JSON: %w", err)
 	}
 
-	if metadata, err := UnmarshalMetadata(jsonBytes); err != nil {
-
-		b, err := json.MarshalIndent(metadata, "", "  ")
-		if err != nil {
-			log.Fatalf("Error marshaling metadata: %v", err)
-		}
-
-		r := &RoflFile{
-			FileBuffer:     buf,
-			Path:           path,
-			MetadataOffset: metadataOffset,
-			Metadata:       metadata,
-			MetadataString: string(b),
-		}
-
-		return r, nil
+	metadata, err := UnmarshalMetadata(jsonBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling metadata: %w", err)
 	}
 
-	return nil, fmt.Errorf("error unmarshaling metadata encountered: %w", err)
+	b, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling metadata: %w", err)
+	}
+
+	r := &RoflFile{
+		FileBuffer:     buf,
+		Path:           path,
+		MetadataOffset: metadataOffset,
+		Metadata:       metadata,
+		MetadataString: string(b),
+	}
+
+	return r, nil
 }
 
 func extractJSON(data []byte) ([]byte, error) {
